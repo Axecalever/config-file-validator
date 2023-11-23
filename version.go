@@ -1,5 +1,5 @@
 package configfilevalidator
-
+//test
 import "fmt"
 
 // Version information set by link flags during build. We fall back to these sane
