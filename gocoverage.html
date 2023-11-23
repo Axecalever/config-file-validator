@@ -1,0 +1,923 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>validator: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">github.com/Boeing/config-file-validator/cmd/validator/validator.go (88.7%)</option>
+				
+				<option value="file1">github.com/Boeing/config-file-validator/pkg/cli/cli.go (96.4%)</option>
+				
+				<option value="file2">github.com/Boeing/config-file-validator/pkg/finder/fsfinder.go (94.9%)</option>
+				
+				<option value="file3">github.com/Boeing/config-file-validator/pkg/reporter/json_reporter.go (95.2%)</option>
+				
+				<option value="file4">github.com/Boeing/config-file-validator/pkg/reporter/stdout_reporter.go (100.0%)</option>
+				
+				<option value="file5">github.com/Boeing/config-file-validator/pkg/validator/csv.go (100.0%)</option>
+				
+				<option value="file6">github.com/Boeing/config-file-validator/pkg/validator/hcl.go (100.0%)</option>
+				
+				<option value="file7">github.com/Boeing/config-file-validator/pkg/validator/ini.go (100.0%)</option>
+				
+				<option value="file8">github.com/Boeing/config-file-validator/pkg/validator/json.go (100.0%)</option>
+				
+				<option value="file9">github.com/Boeing/config-file-validator/pkg/validator/plist.go (100.0%)</option>
+				
+				<option value="file10">github.com/Boeing/config-file-validator/pkg/validator/properties.go (100.0%)</option>
+				
+				<option value="file11">github.com/Boeing/config-file-validator/pkg/validator/toml.go (100.0%)</option>
+				
+				<option value="file12">github.com/Boeing/config-file-validator/pkg/validator/xml.go (100.0%)</option>
+				
+				<option value="file13">github.com/Boeing/config-file-validator/pkg/validator/yaml.go (100.0%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">/*
+Validator recusively scans a directory to search for configuration files and
+validates them using the go package for each configuration type.
+
+Currently Apple PList XML, CSV, HCL, INI, JSON, Properties, TOML, XML, and YAML
+configuration file types are supported.
+
+Usage: validator [OPTIONS] [&lt;search_path&gt;...]
+
+positional arguments:
+    search_path: The search path on the filesystem for configuration files. Defaults to the current working directory if no search_path provided. Multiple search paths can be declared separated by a space.
+
+optional flags:
+  -depth int
+            Depth of recursion for the provided search paths. Set depth to 0 to disable recursive path traversal
+  -exclude-dirs string
+            Subdirectories to exclude when searching for configuration files
+  -exclude-file-types string
+            A comma separated list of file types to ignore
+  -reporter string
+            Format of the printed report. Options are standard and json (default "standard")
+  -version
+            Version prints the release version of validator
+*/
+
+package main
+
+import (
+        "errors"
+        "flag"
+        "fmt"
+        "log"
+        "os"
+        "strings"
+
+        configfilevalidator "github.com/Boeing/config-file-validator"
+        "github.com/Boeing/config-file-validator/pkg/cli"
+        "github.com/Boeing/config-file-validator/pkg/finder"
+        "github.com/Boeing/config-file-validator/pkg/reporter"
+)
+
+type validatorConfig struct {
+        searchPaths      []string
+        excludeDirs      *string
+        excludeFileTypes *string
+        reportType       *string
+        depth            *int
+        versionQuery     *bool
+}
+
+// Custom Usage function to cover
+func validatorUsage() <span class="cov8" title="1">{
+        fmt.Printf("Usage: validator [OPTIONS] [&lt;search_path&gt;...]\n\n")
+        fmt.Printf("positional arguments:\n")
+        fmt.Printf(
+                "    search_path: The search path on the filesystem for configuration files. " +
+                        "Defaults to the current working directory if no search_path provided\n\n")
+        fmt.Printf("optional flags:\n")
+        flag.PrintDefaults()
+}</span>
+
+// Parses, validates, and returns the flags
+// flag.String returns a pointer
+// If a required parameter is missing the help
+// output will be displayed and the function
+// will return with exit = 1
+func getFlags() (validatorConfig, error) <span class="cov8" title="1">{
+        flag.Usage = validatorUsage
+        excludeDirsPtr := flag.String("exclude-dirs", "", "Subdirectories to exclude when searching for configuration files")
+        reportTypePtr := flag.String("reporter", "standard", "Format of the printed report. Options are standard and json")
+        excludeFileTypesPtr := flag.String("exclude-file-types", "", "A comma separated list of file types to ignore")
+        depthPtr := flag.Int("depth", 0, "Depth of recursion for the provided search paths. Set depth to 0 to disable recursive path traversal")
+        versionPtr := flag.Bool("version", false, "Version prints the release version of validator")
+        flag.Parse()
+
+        searchPaths := make([]string, 0)
+
+        // If search path arg is empty, set it to the cwd
+        // if not, set it to the arg. Supports n number of
+        // paths
+        if flag.NArg() == 0 </span><span class="cov8" title="1">{
+                searchPaths = append(searchPaths, ".")
+        }</span> else<span class="cov8" title="1"> {
+                searchPaths = append(searchPaths, flag.Args()...)
+        }</span>
+
+        <span class="cov8" title="1">if *reportTypePtr != "standard" &amp;&amp; *reportTypePtr != "json" </span><span class="cov8" title="1">{
+                fmt.Println("Wrong parameter value for reporter, only supports standard or json")
+                flag.Usage()
+                return validatorConfig{}, errors.New("Wrong parameter value for reporter, only supports standard or json")
+        }</span>
+
+        <span class="cov8" title="1">if depthPtr != nil &amp;&amp; isFlagSet("depth") &amp;&amp; *depthPtr &lt; 0 </span><span class="cov0" title="0">{
+                fmt.Println("Wrong parameter value for depth, value cannot be negative.")
+                flag.Usage()
+                return validatorConfig{}, errors.New("Wrong parameter value for depth, value cannot be negative")
+        }</span>
+
+        <span class="cov8" title="1">config := validatorConfig{
+                searchPaths,
+                excludeDirsPtr,
+                excludeFileTypesPtr,
+                reportTypePtr,
+                depthPtr,
+                versionPtr,
+        }
+
+        return config, nil</span>
+}
+
+// isFlagSet verifies if a given flag has been set or not
+func isFlagSet(flagName string) bool <span class="cov8" title="1">{
+        var isSet bool
+
+        flag.Visit(func(f *flag.Flag) </span><span class="cov8" title="1">{
+                if f.Name == flagName </span><span class="cov0" title="0">{
+                        isSet = true
+                }</span>
+        })
+
+        <span class="cov8" title="1">return isSet</span>
+}
+
+// Return the reporter associated with the
+// reportType string
+func getReporter(reportType *string) reporter.Reporter <span class="cov8" title="1">{
+        switch *reportType </span>{
+        case "json":<span class="cov8" title="1">
+                return reporter.JsonReporter{}</span>
+        default:<span class="cov8" title="1">
+                return reporter.StdoutReporter{}</span>
+        }
+}
+
+func mainInit() int <span class="cov8" title="1">{
+        validatorConfig, err := getFlags()
+        if err != nil </span><span class="cov8" title="1">{
+                return 1
+        }</span>
+
+        <span class="cov8" title="1">if *validatorConfig.versionQuery </span><span class="cov8" title="1">{
+                fmt.Println(configfilevalidator.GetVersion())
+                return 0
+        }</span>
+
+        // since the exclude dirs are a comma separated string
+        // it needs to be split into a slice of strings
+        <span class="cov8" title="1">excludeDirs := strings.Split(*validatorConfig.excludeDirs, ",")
+        reporter := getReporter(validatorConfig.reportType)
+        excludeFileTypes := strings.Split(*validatorConfig.excludeFileTypes, ",")
+
+        fsOpts := []finder.FSFinderOptions{finder.WithPathRoots(validatorConfig.searchPaths...),
+                finder.WithExcludeDirs(excludeDirs),
+                finder.WithExcludeFileTypes(excludeFileTypes)}
+
+        if validatorConfig.depth != nil &amp;&amp; isFlagSet("depth") </span><span class="cov0" title="0">{
+                fsOpts = append(fsOpts, finder.WithDepth(*validatorConfig.depth))
+        }</span>
+
+        // Initialize a file system finder
+        <span class="cov8" title="1">fileSystemFinder := finder.FileSystemFinderInit(fsOpts...)
+
+        // Initialize the CLI
+        cli := cli.Init(
+                cli.WithReporter(reporter),
+                cli.WithFinder(fileSystemFinder),
+        )
+
+        // Run the config file validation
+        exitStatus, err := cli.Run()
+        if err != nil </span><span class="cov8" title="1">{
+                log.Printf("An error occurred during CLI execution: %v", err)
+        }</span>
+
+        <span class="cov8" title="1">return exitStatus</span>
+}
+
+func main() <span class="cov0" title="0">{
+        os.Exit(mainInit())
+}</span>
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">package cli
+
+import (
+        "fmt"
+        "os"
+
+        "github.com/Boeing/config-file-validator/pkg/finder"
+        "github.com/Boeing/config-file-validator/pkg/reporter"
+)
+
+type CLI struct {
+        // FileFinder interface to search for the files
+        // in the SearchPath
+        Finder finder.FileFinder
+        // Reporter interface for outputting the results of the
+        // the CLI run
+        Reporter reporter.Reporter
+}
+
+// Implement the go options pattern to be able to
+// set options to the CLI struct using functional
+// programming
+type CLIOption func(*CLI)
+
+// Set the CLI Finder
+func WithFinder(finder finder.FileFinder) CLIOption <span class="cov8" title="1">{
+        return func(c *CLI) </span><span class="cov8" title="1">{
+                c.Finder = finder
+        }</span>
+}
+
+// Set the reporter type
+func WithReporter(reporter reporter.Reporter) CLIOption <span class="cov8" title="1">{
+        return func(c *CLI) </span><span class="cov8" title="1">{
+                c.Reporter = reporter
+        }</span>
+}
+
+// Initialize the CLI object
+func Init(opts ...CLIOption) *CLI <span class="cov8" title="1">{
+        defaultFsFinder := finder.FileSystemFinderInit()
+        defaultReporter := reporter.StdoutReporter{}
+
+        cli := &amp;CLI{
+                defaultFsFinder,
+                defaultReporter,
+        }
+
+        for _, opt := range opts </span><span class="cov8" title="1">{
+                opt(cli)
+        }</span>
+
+        <span class="cov8" title="1">return cli</span>
+}
+
+// The Run method performs the following actions:
+// - Finds the calls the Find method from the Finder interface to
+// return a list of files
+// - Reads each file that was found
+// - Calls the Validate method from the Validator interface to validate the file
+// - Outputs the results using the Reporter
+func (c CLI) Run() (int, error) <span class="cov8" title="1">{
+        errorFound := false
+        var reports []reporter.Report
+        foundFiles, err := c.Finder.Find()
+
+        if err != nil </span><span class="cov8" title="1">{
+                return 1, fmt.Errorf("Unable to find files: %v", err)
+        }</span>
+
+        <span class="cov8" title="1">for _, fileToValidate := range foundFiles </span><span class="cov8" title="1">{
+                // read it
+                fileContent, err := os.ReadFile(fileToValidate.Path)
+                if err != nil </span><span class="cov0" title="0">{
+                        return 1, fmt.Errorf("unable to read file: %v", err)
+                }</span>
+
+                <span class="cov8" title="1">isValid, err := fileToValidate.FileType.Validator.Validate(fileContent)
+                if !isValid </span><span class="cov8" title="1">{
+                        errorFound = true
+                }</span>
+                <span class="cov8" title="1">report := reporter.Report{
+                        FileName:        fileToValidate.Name,
+                        FilePath:        fileToValidate.Path,
+                        IsValid:         isValid,
+                        ValidationError: err,
+                }
+                reports = append(reports, report)</span>
+        }
+
+        <span class="cov8" title="1">c.Reporter.Print(reports)
+
+        if errorFound </span><span class="cov8" title="1">{
+                return 1, nil
+        }</span> else<span class="cov8" title="1"> {
+                return 0, nil
+        }</span>
+}
+</pre>
+		
+		<pre class="file" id="file2" style="display: none">package finder
+
+import (
+        "io/fs"
+        "os"
+        "path/filepath"
+        "strings"
+
+        "slices"
+
+        "github.com/Boeing/config-file-validator/pkg/filetype"
+)
+
+type FileSystemFinder struct {
+        PathRoots        []string
+        FileTypes        []filetype.FileType
+        ExcludeDirs      []string
+        ExcludeFileTypes []string
+        Depth            *int
+}
+
+type FSFinderOptions func(*FileSystemFinder)
+
+// Set the CLI SearchPath
+func WithPathRoots(paths ...string) FSFinderOptions <span class="cov8" title="1">{
+        return func(fsf *FileSystemFinder) </span><span class="cov8" title="1">{
+                fsf.PathRoots = paths
+        }</span>
+}
+
+// Add a custom list of file types to the FSFinder
+func WithFileTypes(fileTypes []filetype.FileType) FSFinderOptions <span class="cov8" title="1">{
+        return func(fsf *FileSystemFinder) </span><span class="cov8" title="1">{
+                fsf.FileTypes = fileTypes
+        }</span>
+}
+
+// Add a custom list of file types to the FSFinder
+func WithExcludeDirs(excludeDirs []string) FSFinderOptions <span class="cov8" title="1">{
+        return func(fsf *FileSystemFinder) </span><span class="cov8" title="1">{
+                fsf.ExcludeDirs = excludeDirs
+        }</span>
+}
+
+// WithExcludeFileTypes adds excluded file types to FSFinder.
+func WithExcludeFileTypes(types []string) FSFinderOptions <span class="cov8" title="1">{
+        return func(fsf *FileSystemFinder) </span><span class="cov8" title="1">{
+                fsf.ExcludeFileTypes = types
+        }</span>
+}
+
+// WithDepth adds the depth for search recursion to FSFinder
+func WithDepth(depthVal int) FSFinderOptions <span class="cov8" title="1">{
+        return func(fsf *FileSystemFinder) </span><span class="cov8" title="1">{
+                fsf.Depth = &amp;depthVal
+        }</span>
+}
+
+func FileSystemFinderInit(opts ...FSFinderOptions) *FileSystemFinder <span class="cov8" title="1">{
+        var defaultExludeDirs []string
+        defaultPathRoots := []string{"."}
+
+        fsfinder := &amp;FileSystemFinder{
+                PathRoots:   defaultPathRoots,
+                FileTypes:   filetype.FileTypes,
+                ExcludeDirs: defaultExludeDirs,
+        }
+
+        for _, opt := range opts </span><span class="cov8" title="1">{
+                opt(fsfinder)
+        }</span>
+
+        <span class="cov8" title="1">return fsfinder</span>
+}
+
+// Find implements the FileFinder interface by calling findOne on
+// all the PathRoots and providing the aggregated FileMetadata after
+// ignoring all the duplicate files
+func (fsf FileSystemFinder) Find() ([]FileMetadata, error) <span class="cov8" title="1">{
+        seen := make(map[string]struct{}, 0)
+        uniqueMatches := make([]FileMetadata, 0)
+        for _, pathRoot := range fsf.PathRoots </span><span class="cov8" title="1">{
+                matches, err := fsf.findOne(pathRoot)
+                if err != nil </span><span class="cov8" title="1">{
+                        return nil, err
+                }</span>
+                <span class="cov8" title="1">for _, match := range matches </span><span class="cov8" title="1">{
+                        absPath, err := filepath.Abs(match.Path)
+                        if err != nil </span><span class="cov0" title="0">{
+                                return nil, err
+                        }</span>
+                        <span class="cov8" title="1">if _, ok := seen[absPath]; ok </span><span class="cov8" title="1">{
+                                continue</span>
+                        }
+                        <span class="cov8" title="1">uniqueMatches = append(uniqueMatches, match)
+                        seen[absPath] = struct{}{}</span>
+                }
+        }
+        <span class="cov8" title="1">return uniqueMatches, nil</span>
+}
+
+// findOne recursively walks through all subdirectories (excluding the excluded subdirectories)
+// and identifying if the file matches a type defined in the fileTypes array for a
+// single path and returns the file metadata.
+func (fsf FileSystemFinder) findOne(pathRoot string) ([]FileMetadata, error) <span class="cov8" title="1">{
+        var matchingFiles []FileMetadata
+
+        // check that the path exists before walking it or the error returned
+        // from filepath.Walk will be very confusing and undescriptive
+        if _, err := os.Stat(pathRoot); os.IsNotExist(err) </span><span class="cov8" title="1">{
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">var depth int
+        if fsf.Depth != nil </span><span class="cov8" title="1">{
+                depth = *fsf.Depth
+        }</span>
+
+        <span class="cov8" title="1">maxDepth := strings.Count(pathRoot, string(os.PathSeparator)) + depth
+
+        err := filepath.WalkDir(pathRoot,
+                func(path string, dirEntry fs.DirEntry, err error) error </span><span class="cov8" title="1">{
+                        // determine if directory is in the excludeDirs list
+                        if dirEntry.IsDir() &amp;&amp; fsf.Depth != nil &amp;&amp; strings.Count(path, string(os.PathSeparator)) &gt; maxDepth </span><span class="cov0" title="0">{
+                                // Skip processing the directory
+                                return fs.SkipDir // This is not reported as an error by filepath.WalkDir
+                        }</span>
+
+                        <span class="cov8" title="1">for _, dir := range fsf.ExcludeDirs </span><span class="cov8" title="1">{
+                                if dirEntry.IsDir() &amp;&amp; dirEntry.Name() == dir </span><span class="cov8" title="1">{
+                                        err := filepath.SkipDir
+                                        if err != nil </span><span class="cov8" title="1">{
+                                                return err
+                                        }</span>
+                                }
+                        }
+
+                        <span class="cov8" title="1">if !dirEntry.IsDir() </span><span class="cov8" title="1">{
+                                // filepath.Ext() returns the extension name with a dot so it
+                                // needs to be removed.
+                                walkFileExtension := strings.TrimPrefix(filepath.Ext(path), ".")
+                                if slices.Contains[[]string](fsf.ExcludeFileTypes, walkFileExtension) </span><span class="cov8" title="1">{
+                                        return nil
+                                }</span>
+
+                                <span class="cov8" title="1">for _, fileType := range fsf.FileTypes </span><span class="cov8" title="1">{
+                                        for _, extension := range fileType.Extensions </span><span class="cov8" title="1">{
+                                                if extension == walkFileExtension </span><span class="cov8" title="1">{
+                                                        fileMetadata := FileMetadata{dirEntry.Name(), path, fileType}
+                                                        matchingFiles = append(matchingFiles, fileMetadata)
+                                                }</span>
+                                        }
+                                }
+                        }
+
+                        <span class="cov8" title="1">return nil</span>
+                })
+
+        <span class="cov8" title="1">if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">return matchingFiles, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file3" style="display: none">package reporter
+
+import (
+        "encoding/json"
+        "fmt"
+        "strings"
+)
+
+type JsonReporter struct{}
+
+type fileStatus struct {
+        Path   string `json:"path"`
+        Status string `json:"status"`
+        Error  string `json:"error,omitempty"`
+}
+
+type summary struct {
+        Passed int `json:"passed"`
+        Failed int `json:"failed"`
+}
+
+type reportJSON struct {
+        Files   []fileStatus `json:"files"`
+        Summary summary      `json:"summary"`
+}
+
+// Print implements the Reporter interface by outputting
+// the report content to stdout as JSON
+func (jr JsonReporter) Print(reports []Report) error <span class="cov8" title="1">{
+        var report reportJSON
+
+        for _, r := range reports </span><span class="cov8" title="1">{
+                status := "passed"
+                errorStr := ""
+                if !r.IsValid </span><span class="cov8" title="1">{
+                        status = "failed"
+                        errorStr = r.ValidationError.Error()
+                }</span>
+
+                // Convert Windows-style file paths.
+                <span class="cov8" title="1">if strings.Contains(r.FilePath, "\\") </span><span class="cov8" title="1">{
+                        r.FilePath = strings.ReplaceAll(r.FilePath, "\\", "/")
+                }</span>
+
+                <span class="cov8" title="1">report.Files = append(report.Files, fileStatus{
+                        Path:   r.FilePath,
+                        Status: status,
+                        Error:  errorStr,
+                })</span>
+        }
+
+        <span class="cov8" title="1">report.Summary.Passed = 0
+        report.Summary.Failed = 0
+        for _, f := range report.Files </span><span class="cov8" title="1">{
+                if f.Status == "passed" </span><span class="cov8" title="1">{
+                        report.Summary.Passed++
+                }</span> else<span class="cov8" title="1"> {
+                        report.Summary.Failed++
+                }</span>
+        }
+
+        <span class="cov8" title="1">jsonBytes, err := json.MarshalIndent(report, "", "  ")
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov8" title="1">fmt.Println(string(jsonBytes))
+        return nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file4" style="display: none">package reporter
+
+import (
+        "fmt"
+        "strings"
+
+        "github.com/fatih/color"
+)
+
+type StdoutReporter struct{}
+
+// Print implements the Reporter interface by outputting
+// the report content to stdout
+func (sr StdoutReporter) Print(reports []Report) error <span class="cov8" title="1">{
+        var successCount = 0
+        var failureCount = 0
+        for _, report := range reports </span><span class="cov8" title="1">{
+                if !report.IsValid </span><span class="cov8" title="1">{
+                        color.Set(color.FgRed)
+                        fmt.Println("    × " + report.FilePath)
+                        paddedString := sr.padErrorString(report.ValidationError.Error())
+                        fmt.Printf("        error: %v\n", paddedString)
+                        color.Unset()
+                        failureCount = failureCount + 1
+                }</span> else<span class="cov8" title="1"> {
+                        color.Green("    ✓ " + report.FilePath)
+                        successCount = successCount + 1
+                }</span>
+        }
+        <span class="cov8" title="1">fmt.Printf("Summary: %d succeeded, %d failed\n", successCount, failureCount)
+        return nil</span>
+}
+
+// padErrorString adds padding to every newline in the error
+// string, except the first line and removes any trailing newlines
+// or spaces
+func (sr StdoutReporter) padErrorString(errS string) string <span class="cov8" title="1">{
+        errS = strings.TrimSpace(errS)
+        lines := strings.Split(errS, "\n")
+        for idx := 1; idx &lt; len(lines); idx++ </span><span class="cov8" title="1">{
+                lines[idx] = "               " + lines[idx]
+        }</span>
+        <span class="cov8" title="1">paddedErr := strings.Join(lines, "\n")
+        return paddedErr</span>
+}
+</pre>
+		
+		<pre class="file" id="file5" style="display: none">package validator
+
+import (
+        "bytes"
+        "io"
+
+        "encoding/csv"
+)
+
+// CsvValidator is used to validate a byte slice that is intended to represent a
+// CSV file.
+type CsvValidator struct{}
+
+// Validate checks if the provided byte slice represents a valid .csv file.
+// https://pkg.go.dev/encoding/csv
+func (csvv CsvValidator) Validate(b []byte) (bool, error) <span class="cov8" title="1">{
+        csvReader := csv.NewReader(bytes.NewReader(b))
+        csvReader.TrimLeadingSpace = true
+
+        for </span><span class="cov8" title="1">{
+                _, err := csvReader.Read()
+                if err == io.EOF </span><span class="cov8" title="1">{
+                        break</span>
+                }
+
+                <span class="cov8" title="1">if err != nil </span><span class="cov8" title="1">{
+                        return false, err
+                }</span>
+        }
+
+        <span class="cov8" title="1">return true, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file6" style="display: none">package validator
+
+import (
+        "fmt"
+
+        "github.com/hashicorp/hcl/v2/hclparse"
+)
+
+// HclValidator is used to validate a byte slice that is intended to represent a
+// HashiCorp Configuration Language (HCL) file.
+type HclValidator struct{}
+
+// Validate checks if the provided byte slice represents a valid .hcl file.
+//
+// The hcl parser uses FIFO to determine which error to display to the user. For
+// more information, see the documentation at:
+//
+// https://pkg.go.dev/github.com/hashicorp/hcl/v2#Diagnostics.Error
+//
+// If the hcl.Diagnostics slice contains more than one error, the wrapped
+// error returned by this function will include them as "and {count} other
+// diagnostic(s)" in the error message.
+func (hclv HclValidator) Validate(b []byte) (bool, error) <span class="cov8" title="1">{
+        _, diags := hclparse.NewParser().ParseHCL(b, "")
+        if diags == nil </span><span class="cov8" title="1">{
+                return true, nil
+        }</span>
+
+        <span class="cov8" title="1">subject := diags[0].Subject
+
+        row := subject.Start.Line
+        col := subject.Start.Column
+
+        return false, fmt.Errorf("error at line %v column %v: %w", row, col, diags)</span>
+}
+</pre>
+		
+		<pre class="file" id="file7" style="display: none">package validator
+
+import (
+        "gopkg.in/ini.v1"
+)
+
+type IniValidator struct{}
+
+// Validate implements the Validator interface by attempting to
+// parse a byte array of ini
+func (iv IniValidator) Validate(b []byte) (bool, error) <span class="cov8" title="1">{
+        _, err := ini.LoadSources(ini.LoadOptions{}, b)
+        if err != nil </span><span class="cov8" title="1">{
+                return false, err
+        }</span>
+        <span class="cov8" title="1">return true, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file8" style="display: none">package validator
+
+import (
+        "encoding/json"
+        "fmt"
+        "strings"
+)
+
+type JsonValidator struct{}
+
+// Returns a custom error message that contains the unmarshal
+// error message along with the line and character
+// number where the error occurred when parsing the JSON
+func getCustomErr(input []byte, err error) error <span class="cov8" title="1">{
+        jsonError := err.(*json.SyntaxError)
+        offset := int(jsonError.Offset)
+        line := 1 + strings.Count(string(input)[:offset], "\n")
+        column := 1 + offset - (strings.LastIndex(string(input)[:offset], "\n") + len("\n"))
+        return fmt.Errorf("Error at line %v column %v: %v", line, column, jsonError)
+}</span>
+
+// Validate implements the Validator interface by attempting to
+// unmarshall a byte array of json
+func (jv JsonValidator) Validate(b []byte) (bool, error) <span class="cov8" title="1">{
+        var output interface{}
+        err := json.Unmarshal(b, &amp;output)
+        if err != nil </span><span class="cov8" title="1">{
+                customError := getCustomErr(b, err)
+                return false, customError
+        }</span>
+        <span class="cov8" title="1">return true, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file9" style="display: none">package validator
+
+import (
+        "bytes"
+
+        "howett.net/plist"
+)
+
+// PlistValidator is used to validate a byte slice that is intended to represent a
+// Apple Property List file (plist).
+type PlistValidator struct{}
+
+// Validate checks if the provided byte slice represents a valid .plist file.
+func (csvv PlistValidator) Validate(b []byte) (bool, error) <span class="cov8" title="1">{
+        var output interface{}
+        plistDecoder := plist.NewDecoder(bytes.NewReader(b))
+        err := plistDecoder.Decode(&amp;output)
+        if err != nil </span><span class="cov8" title="1">{
+                return false, err
+        }</span>
+        <span class="cov8" title="1">return true, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file10" style="display: none">package validator
+
+import (
+        "github.com/magiconair/properties"
+)
+
+type PropValidator struct{}
+
+// Validate implements the Validator interface by attempting to
+// parse a byte array of properties
+func (pv PropValidator) Validate(b []byte) (bool, error) <span class="cov8" title="1">{
+        l := &amp;properties.Loader{Encoding: properties.UTF8}
+        _, err := l.LoadBytes(b)
+        if err != nil </span><span class="cov8" title="1">{
+                return false, err
+        }</span>
+        <span class="cov8" title="1">return true, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file11" style="display: none">package validator
+
+import (
+        "errors"
+        "fmt"
+        "github.com/pelletier/go-toml/v2"
+)
+
+type TomlValidator struct{}
+
+func (tv TomlValidator) Validate(b []byte) (bool, error) <span class="cov8" title="1">{
+        var output interface{}
+        err := toml.Unmarshal(b, &amp;output)
+        var derr *toml.DecodeError
+        if errors.As(err, &amp;derr) </span><span class="cov8" title="1">{
+                row, col := derr.Position()
+                return false, fmt.Errorf("Error at line %v column %v: %v", row, col, err)
+        }</span>
+        <span class="cov8" title="1">return true, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file12" style="display: none">package validator
+
+import (
+        "encoding/xml"
+)
+
+type XmlValidator struct{}
+
+// Validate implements the Validator interface by attempting to
+// unmarshall a byte array of xml
+func (xv XmlValidator) Validate(b []byte) (bool, error) <span class="cov8" title="1">{
+        var output interface{}
+        err := xml.Unmarshal(b, &amp;output)
+        if err != nil </span><span class="cov8" title="1">{
+                return false, err
+        }</span>
+        <span class="cov8" title="1">return true, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file13" style="display: none">package validator
+
+import (
+        "gopkg.in/yaml.v3"
+)
+
+type YamlValidator struct{}
+
+// Validate implements the Validator interface by attempting to
+// unmarshall a byte array of yaml
+func (yv YamlValidator) Validate(b []byte) (bool, error) <span class="cov8" title="1">{
+        var output interface{}
+        err := yaml.Unmarshal(b, &amp;output)
+        if err != nil </span><span class="cov8" title="1">{
+                return false, err
+        }</span>
+        <span class="cov8" title="1">return true, nil</span>
+}
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>
